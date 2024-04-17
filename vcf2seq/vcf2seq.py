@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 """
-Like seqtailor, give a VCF file, it return genomic sequence (default length: 31)
+Similar to seqtailor [PMID:31045209] : reads a VCF file, outputs a genomic sequence
+(default length: 31)
 
-Nota:
-- When a insertion is larger than '--size' option, only first '--size' nucleotides are outputed.
-- header ID are formated like "<chr>_<position>_<ref>_<alt>".
+Unlike seqtailor, all sequences will have the same length. Moreover, it is possible to have an
+absence character (by default the dot ` .` ) for indels.
+
+- When a insertion is larger than `--size` parameter, only first `--size` nucleotides are outputed.
+- Sequence headers are formated as "<chr>_<position>_<ref>_<alt>".
 
 VCF format specifications: https://github.com/samtools/hts-specs/blob/master/VCFv4.4.pdf
 """
@@ -208,7 +211,7 @@ def usage():
                        )
     parser.add_argument('-s', '--size',
                         type=int,
-                        help="size of the output sequence (defalt: 31)",
+                        help="size of the output sequence (default: 31)",
                         default=31,
                        )
     parser.add_argument("-t", "--type",
@@ -223,7 +226,6 @@ def usage():
                         default='.',
                         )
     parser.add_argument("-a", "--add-columns",
-                        # ~ type=int,
                         help="Add one or more columns to header (ex: '-a 3 AA' will add columns "
                              "3 and 27). The first column is '1' (or 'A')",
                         nargs= '+',

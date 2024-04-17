@@ -3,12 +3,20 @@
 
 ## Aim
 
-like seqTailor, give a VCF file, it return genomic sequence.
+Similar to seqtailor [PMID:31045209] : reads a VCF file, outputs a genomic sequence (default length: 31)
+
+Unlike seqtailor, all sequences will have the same length. Moreover, it is possible to have an absence character (by default the dot ` .` ) for indels.
+
+- When a insertion is larger than ``--size`` parameter, only first ``--size`` nucleotides are outputed.
+- Sequence headers are formated as "<chr>_<position>_<ref>_<alt>".
+
+VCF format specifications: https://github.com/samtools/hts-specs/blob/master/VCFv4.4.pdf
+
 
 ## Installation
 
 ```
-pip install vcf2ses
+pip install vcf2seq
 ```
 
 
@@ -17,15 +25,6 @@ pip install vcf2ses
 ```
 usage: vcf2seq.py [-h] -g genome [-s SIZE] [-t {alt,ref,both}] [-b BLANK] [-a ADD_COLUMNS [ADD_COLUMNS ...]] [-o OUTPUT] [-v] vcf
 
-================================================================================
-Like seqtailor, give a VCF file, it return genomic sequence (default length: 31)
-
-Nota:
-- When a insertion is larger than '--size' option, only first '--size' nucleotides are outputed.
-- header ID are formated like "<chr>_<position>_<ref>_<alt>".
-
-VCF format specifications: https://github.com/samtools/hts-specs/blob/master/VCFv4.4.pdf
-================================================================================
 
 positional arguments:
   vcf                   vcf file (mandatory)

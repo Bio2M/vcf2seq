@@ -15,7 +15,7 @@ setuptools.setup(
     packages = setuptools.find_packages(),
     classifiers = [
         'Development Status :: 3 - Alpha',
-        "Programming language :: Python :: 3",
+        # ~ "Programming language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: POSIX :: Linux",
         'Natural Language :: English',
