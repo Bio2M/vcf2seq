@@ -34,8 +34,8 @@ def main():
                   "writable.\nIf you can't change the rights, you can create a symlink and target "
                   f"it. For example:\n  ln -s {args.genome} $HOME\n{COL.END}")
     vcf_ctrl(args, chr_dict)
-    res_ref, res_alt = compute(args, chr_dict)
-    write(args, res_ref, res_alt)
+    results, warnings = compute(args, chr_dict)
+    write(args, results, warnings)
 
 
 def vcf_ctrl(args, chr_dict):
@@ -62,6 +62,7 @@ def vcf_ctrl(args, chr_dict):
 def compute(args, chr_dict):
     res_ref = []
     res_alt = []
+    warnings = []
     num_row = 0
     cols_id = ascii.get_index(args.add_columns)    # columns chars are converted as index, ex: AA -> 27
     for variant in args.vcf:
@@ -83,7 +84,8 @@ def compute(args, chr_dict):
 
             ### WARNING: event bigger than kmer size
             if max(len(ref), len(alt)) > args.size :
-                print(f"{COL.PURPLE}Warning: large alteration ({chr}_{position}_{ref}_{alt}), truncated in output.")
+                warnings.append(f"Warning: large alteration ({chr}_{position}_{ref}_{alt}), truncated in output.")
+
 
             ### ERROR: REF base is not valid
             NUC = ["A", "T", "C", "G", args.blank]
@@ -111,19 +113,21 @@ def compute(args, chr_dict):
             #####################################################################################
 
             ### define some corrections
-            corr_ref = 0 if len(ref)&1 else 1      # if REF length is pair, coor_ref = 1
-            corr_alt = 0 if len(alt)&1 else 1      # if ALT length is pair, coor_alt = 1
-
-            ### missing value for REF or ALT
-            if ref == args.blank:
-                corr_ref += 1
-            if alt == args.blank:
-                corr_alt += 1
+            corr_ref = 0
+            corr_alt = 0
+            if not args.size&1:                                 # k is pair
+                if len(ref)&1 and ref != args.blank: corr_ref += 1  # corr_ref + 1 if REF length is unpair
+                if len(alt)&1 and alt != args.blank: corr_alt += 1  # corr_alt + 1 if ALT length is unpair
+            else:                                               # k is unpair
+                if not len(ref)&1: corr_ref += 1                    # corr_ref + 1 if REF length is pair
+                if not len(alt)&1: corr_alt += 1                    # corr_alt + 1 if ALT length is pair
+                if ref == args.blank: corr_ref += 1                 # missing value for REF
+                if alt == args.blank: corr_alt += 1                 # missing value for ALT
 
             ## define REF kmer
-            l_ref2 = 0 if ref == args.blank else len(ref)
-            l_ref1 = (args.size - l_ref2) // 2
-            l_ref3 = (args.size - l_ref2) // 2 + corr_ref
+            l_ref2  = 0 if ref == args.blank else len(ref)
+            l_ref1  = (args.size - l_ref2) // 2
+            l_ref3  = l_ref1 + corr_ref
             ps_ref2 = int(position)-1                               # -1 for pyfaidx
             ps_ref1 = ps_ref2 - l_ref1
             pe_ref3 = ps_ref2 + l_ref2 + l_ref3
@@ -145,42 +149,51 @@ def compute(args, chr_dict):
             ### WARNING: REF bases must be the same as the calculated position
             seq_ref2 = chr_dict[chr][ps_ref2:ps_ref2+l_ref2]
             if l_ref2 and not ref == seq_ref2:
-                print(f"{COL.PURPLE}Warning: mismatch between REF and genome "
-                         f"at line {num_row} ({chr}:{ps_ref2+1}).\n"
-                         f"          - REF on the vcf file: {ref!r}\n"
-                         f"          - found on the genome: '{seq_ref2}'\n"
-                         f"Please check if the given genome is appropriate.\n{COL.END}")
+                warnings.append("Warning: mismatch between REF and genome "
+                                f"at line {num_row} ({chr}:{ps_ref2+1}).\n"
+                                f"    - REF on the vcf file: {ref!r}\n"
+                                f"    - Found on the genome: '{seq_ref2}'\n"
+                                "    Please check if the given genome is appropriate.\n")
 
             col_txt =  ' '.join([fields[num-1] for num in cols_id])
             if len(ref_seq) == args.size == len(alt_seq):
                 res_ref.append(f"{header}_ref {col_txt}\n{ref_seq}")
                 res_alt.append(f"{header}_alt {col_txt}\n{alt_seq}")
             elif len(alt_seq) > args.size:
-                print(f"{COL.PURPLE}Warning: ALT length ({len(alt_seq)} bp) larger than sequence ({args.size} bp) at line {num_row}, ignored.{COL.END}")
+                warnings.append(f"Warning: ALT length ({len(alt_seq)} bp) larger than sequence ({args.size} bp) at line {num_row}, ignored.")
             else:
-                print(f"{COL.PURPLE}Warning: sequence size not correct at line {num_row}, ignored.{COL.END}")
+                warnings.append(f"Warning: sequence size not correct at line {num_row}, ignored ({len(alt_seq)} != {args.size}).")
 
-    return res_ref, res_alt
+    if args.type == 'alt':
+        res = res_alt
+    elif args.type == 'ref':
+        res = res_ref
+    else:
+        res = list()
+        for i,_ in enumerate(res_alt):
+            res.append(res_ref[i])
+            res.append(res_alt[i])
+    return res, warnings
 
 
-def write(args, res_ref, res_alt):
-    """ Function doc """
-    ### define output file
+
+def write(args, results, warnings):
+    ### RESULTS
+    ## define output file
     if not args.output:
         name, ext = os.path.splitext(os.path.basename(args.vcf.name))
         args.output = f"{name}-vcf2seq.fa"
-    ### write results in file
+    ## write results in file
     with open(args.output, 'w') as fh:
-        if not res_ref:
+        if not results:
             return
-        if args.type == 'alt':
-            fh.write('\n'.join([a for a in res_alt]) + "\n")
-        elif args.type == 'ref':
-            fh.write('\n'.join([a for a in res_ref]) + "\n")
-        elif args.type == 'both':
-            for i, _ in enumerate(res_alt):
-                fh.write(res_ref[i] + '\n')
-                fh.write(res_alt[i] + '\n')
+        fh.write('\n'.join([a for a in results]) + "\n")
+
+    ### WARNINGS
+    if warnings:
+        print(COL.PURPLE)
+        print(*warnings, sep='\n')
+        print(COL.END)
 
 
 class COL:
