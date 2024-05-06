@@ -80,7 +80,7 @@ def compute(args, chr_dict):
         alts = alts.split(',')
         for alt in alts:
 
-            header = f">{chr}_{position}_{ref}_{alt}"
+            header = f"{chr}_{position}_{ref}_{alt}"
 
             ### WARNING: event bigger than kmer size
             if max(len(ref), len(alt)) > args.size :
@@ -154,11 +154,11 @@ def compute(args, chr_dict):
                                 f"    - REF on the vcf file: {ref!r}\n"
                                 f"    - Found on the genome: '{seq_ref2}'\n"
                                 "    Please check if the given genome is appropriate.\n")
-
-            col_txt =  ' '.join([fields[num-1] for num in cols_id])
+            col_sep = ' ' if args.output_format == 'fa' else '\t'
+            col_txt =  col_sep.join([fields[num-1] for num in cols_id])
             if len(ref_seq) == args.size == len(alt_seq):
-                res_ref.append(f"{header}_ref {col_txt}\n{ref_seq}")
-                res_alt.append(f"{header}_alt {col_txt}\n{alt_seq}")
+                res_ref.append(f"{header}_ref{col_sep}{col_txt}\n{ref_seq}")
+                res_alt.append(f"{header}_alt{col_sep}{col_txt}\n{alt_seq}")
             elif len(alt_seq) > args.size:
                 warnings.append(f"Warning: ALT length ({len(alt_seq)} bp) larger than sequence ({args.size} bp) at line {num_row}, ignored.")
             else:
@@ -179,15 +179,23 @@ def compute(args, chr_dict):
 
 def write(args, results, warnings):
     ### RESULTS
+    ext = args.output_format
     ## define output file
     if not args.output:
-        name, ext = os.path.splitext(os.path.basename(args.vcf.name))
-        args.output = f"{name}-vcf2seq.fa"
+        name, _ = os.path.splitext(os.path.basename(args.vcf.name))
+        args.output = f"{name}-vcf2seq.{ext}"
     ## write results in file
     with open(args.output, 'w') as fh:
         if not results:
             return
-        fh.write('\n'.join([a for a in results]) + "\n")
+        if ext == 'fa':
+            fh.write(">" + '\n>'.join([a for a in results]) + "\n")
+        else:
+            for row in results:
+                header, seq = row.split('\n')
+                fh.write(f"{seq}\t")
+                fh.write(f"{header}\n")
+
 
     ### WARNINGS
     if warnings:
@@ -245,7 +253,12 @@ def usage():
                         )
     parser.add_argument("-o", "--output",
                         type=str,
-                        help=f"Output file (default: <input_file>-{info.APPNAME}.fa)",
+                        help=f"Output file (default: <input_file>-{info.APPNAME}.fa/tsv)",
+                        )
+    parser.add_argument("-f", "--output-format",
+                        choices=['fa', 'tsv'],
+                        default='fa',
+                        help=f"Output file format (default: fa)",
                         )
     parser.add_argument('-v', '--version',
                         action='version',
