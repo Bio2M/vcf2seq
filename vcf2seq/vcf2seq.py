@@ -208,7 +208,7 @@ def compute(args, chr_dict):
         res += res_ref
     else:
         if args.output_format == 'fa':
-            for i in range(0, len(res_alt)//2, 2):
+            for i in range(0, len(res_alt), 2):
                 res += [res_ref[i], res_ref[i+1]]
                 res += [res_alt[i], res_alt[i+1]]
         else:
