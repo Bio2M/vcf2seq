@@ -90,7 +90,14 @@ def compute(args, chr_dict):
         alts = alts.split(',')
         for alt in alts:
 
-            header = f"{chr}_{position}_{ref}_{alt}"
+            ''' using genome broseable syntax (but miss original information)
+            mid_l = mid_r = args.size // 2
+            if not args.size&1: mid_l -= 1
+            header = f"chr{chr}:{int(position)-mid_l}-{int(position)+mid_r}_{ref}_{alt}"
+            '''
+            header = f"{chr}:{position}_{ref}_{alt}"
+            tsv_cols =  '\t' + '\t'.join([chr, position, ref, alt]) if args.output_format == 'tsv' else ''
+
 
             ### WARNING: event bigger than kmer size
             if max(len(ref), len(alt)) > args.size :
@@ -142,7 +149,7 @@ def compute(args, chr_dict):
                 ps_ref2 = int(position)-1                               # -1 for pyfaidx
                 ps_ref1 = ps_ref2 - l_ref1
                 pe_ref3 = ps_ref2 + l_ref2 + l_ref3
-                ref_seq = chr_dict[chr][ps_ref1:pe_ref3]
+                ref_seq = str(chr_dict[chr][ps_ref1:pe_ref3])
 
                 ## define ALT kmer
                 l_alt2 = 0 if alt == args.blank else len(alt)
@@ -169,10 +176,20 @@ def compute(args, chr_dict):
                                 f"    - Found in the genome: '{seq_ref2}'\n"
                                 "    Please check if the given genome is appropriate.")
             col_sep = ' ' if args.output_format == 'fa' else '\t'
-            col_txt =  col_sep.join([fields[num-1] for num in cols_id])
+
+            ### Append results in lists
             if len(ref_seq) == args.size == len(alt_seq):
-                res_ref.append(f"{header}_ref{col_sep}{col_txt}\n{ref_seq}")
-                res_alt.append(f"{header}_alt{col_sep}{col_txt}\n{alt_seq}")
+                ### append additional selected columns to the header
+                added_cols = f"{col_sep}{col_sep.join([fields[num-1] for num in cols_id])}" if cols_id else ''
+                ### append to list according of output format
+                if args.output_format == "tsv":
+                    res_ref.append(f"{ref_seq}{col_sep}{header}_ref{tsv_cols}{col_sep}ref{added_cols}")
+                    res_alt.append(f"{alt_seq}{col_sep}{header}_alt{tsv_cols}{col_sep}alt{added_cols}")
+                else:
+                    res_ref.append(f">{header}_ref{added_cols}")
+                    res_ref.append(ref_seq)
+                    res_alt.append(f">{header}_alt{added_cols}")
+                    res_alt.append(alt_seq)
             elif len(alt_seq) > args.size:
                 warnings.append(f"Warning: ALT length ({len(alt_seq)} bp) larger than sequence "
                                 f"({args.size} bp) at line {num_row}, ignored.")
@@ -180,15 +197,24 @@ def compute(args, chr_dict):
                 warnings.append(f"Warning: sequence size not correct at line {num_row}, ignored"
                                 "f({len(alt_seq)} != {args.size}).")
 
+    res = list()
+    if args.output_format == 'tsv':
+        str_cols = '\t' + "col_{}".format('\tcol_'.join(args.add_columns)) if args.add_columns else ''
+        res.append(f"sequence\tid\tchr\tposition\tREF\tALT\ttype{str_cols}")
+
     if args.type == 'alt':
-        res = res_alt
+        res += res_alt
     elif args.type == 'ref':
-        res = res_ref
+        res += res_ref
     else:
-        res = list()
-        for i,_ in enumerate(res_alt):
-            res.append(res_ref[i])
-            res.append(res_alt[i])
+        if args.output_format == 'fa':
+            for i in range(0, len(res_alt)//2, 2):
+                res += [res_ref[i], res_ref[i+1]]
+                res += [res_alt[i], res_alt[i+1]]
+        else:
+            for i,_ in enumerate(res_alt):
+                res.append(res_ref[i])
+                res.append(res_alt[i])
     return res, warnings
 
 
@@ -204,13 +230,8 @@ def write(args, results, warnings):
     ## write results in file
     if results:
         with open(args.output, 'w') as fh:
-            if ext == 'fa':
-                fh.write(">" + '\n>'.join([a for a in results]) + "\n")
-            else:
-                for row in results:
-                    header, seq = row.split('\n')
-                    fh.write(f"{seq}\t")
-                    fh.write(f"{header}\n")
+            for result in results:
+                fh.write(f"{result}\n")
 
     ### WARNINGS
     if warnings:
