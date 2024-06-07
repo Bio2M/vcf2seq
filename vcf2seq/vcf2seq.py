@@ -56,7 +56,7 @@ def _input_ok(args, rows, resp, chr_dict):
             resp["error"] = (f"ErrorVcfFormat: second column is the position. It must be a "
                      f"digit (found: {pos!r}).\n"
                       "A commonly issue is that the header is not commented by a '#' ")
-            rest["is_ok"] = False
+            resp["is_ok"] = False
             return False
         if chr not in chr_dict:
             resp["error"] = ("ErrorChr: Chromosomes are not named in the same way in the "
@@ -64,7 +64,7 @@ def _input_ok(args, rows, resp, chr_dict):
                      f" your query: {chr}\n"
                      f" genome: {next(iter(chr_dict.keys()))}\n"
                      f"Please, correct your request (or modify the file '{args.genome}.fai').")
-            rest["is_ok"] = False
+            resp["is_ok"] = False
             return False
         break
     return True, "ok"
@@ -79,19 +79,23 @@ def compute(args, chr_dict):
         "error": None
         }
 
-    ### convert file as list
-    rows = args.input.read().splitlines()
-    
-    ### check file syntax
+    ### convert input as list
+    if isinstance(args.input, str):
+        rows = args.input.splitlines()
+    else:
+        rows = args.input.read().splitlines()
+
+    ### check input syntax
     if not _input_ok(args, rows, resp, chr_dict):
         return resp
-        
 
+    ### define generic variables
     res_ref = []
     res_alt = []
     valid_nuc = ["A", "T", "C", "G", args.blank]
     cols_id = ascii.get_index(args.add_columns)    # columns chars are converted as index, ex: AA -> 27
-    
+
+    ### starts computing
     for i,row in enumerate(rows):
         if not row or row.startswith('#'):
             continue
@@ -208,8 +212,8 @@ def compute(args, chr_dict):
             else:
                 resp["warning"].append(f" Sequence size not correct at line {i+1}, ignored"
                                 f"({len(alt_seq)} != {args.size}).")
-        
-            
+
+
     # ~ res = list()
     if args.output_format == 'tsv':
         str_cols = '\t' + "col_{}".format('\tcol_'.join(args.add_columns)) if args.add_columns else ''
