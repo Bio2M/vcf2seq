@@ -104,7 +104,7 @@ def compute(args, chr_dict):
 
         ### check if --add-columns is compatible with number of columns
         if args.add_columns and max(cols_id) > len(fields):
-            resp["error"] = (f"Error: vcf file has {len(fields)} columns, but you asked for "
+            resp["error"] = (f"VCF file has {len(fields)} columns, but you asked for "
                   f"{max(args.add_columns)}.")
             resp["is_ok"] = False
             return resp
@@ -123,8 +123,8 @@ def compute(args, chr_dict):
             bad_nuc = [ a for a in (alt[0], ref[0]) if a not in valid_nuc]
             if bad_nuc:
                 bad_nuc = bad_nuc[0]
-                resp["warning"].append(f" The base {bad_nuc!r} is not valid at line {i+1}, ignored.\n"
-                        f"    You might add the '--blank {bad_nuc}' option or check your VCF file."
+                resp["warning"].append(f"The base {bad_nuc!r} is not valid at line {i+1}, ignored.\n"
+                        f"    You might add the '-b/--blank {bad_nuc}' option or check your VCF file."
                         )
                 continue
 
@@ -250,15 +250,15 @@ def output(args, resp):
             with open(args.output, 'w') as fh:
                 for result in resp["result"]:
                     fh.write(f"{result}\n")
+            print(f"\n🧬 {args.output} succefully created.\n")
         ### WARNINGS
         if resp["warning"]:
-            print(f"{COL.PURPLE}Warnings:\n")
+            print(f"{COL.PURPLE}⚠️  Warnings:")
             for warning in resp["warning"]:
-                for warning in resp["warning"]:
-                    print(f"{warning}\n")
+                print(f"  - {warning}")
             print(COL.END)
     else:
-        print(f"{COL.RED}{resp['error']}")
+        print(f"\n☠️  {COL.RED}{resp['error']}\n")
 
 
 class COL:
