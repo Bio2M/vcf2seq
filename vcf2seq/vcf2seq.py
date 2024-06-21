@@ -40,14 +40,23 @@ def main():
     output(args, resp)
 
 
-def _input_ok(args, rows, resp, chr_dict):
+def _input_ok(args, rows, resp, chr_dict, cols_id):
     for row in rows:
         if row.startswith('#'):
             continue
         try:
-            chr, pos, id, ref, alt, *rest = row.rstrip('\n').split('\t')
+            fields = row.rstrip('\n').split('\t')
+            nfields = len(fields)
+            chr, pos, id, ref, alt = fields[:5]
         except ValueError:
             resp["error"] = ("ErrorVcfFormat: not enough columns for a vcf (expected at least 5).")
+            resp["is_ok"] = False
+            return False
+
+        ### check if --add-columns is compatible with number of columns
+        if args.add_columns and max(cols_id) > nfields:
+            resp["error"] = (f"VCF file has {nfields} columns, but you asked for "
+                  f"{max(cols_id)}.")
             resp["is_ok"] = False
             return False
 
@@ -85,15 +94,15 @@ def compute(args, chr_dict):
     else:
         rows = args.input.read().splitlines()
 
-    ### check input syntax
-    if not _input_ok(args, rows, resp, chr_dict):
-        return resp
-
     ### define generic variables
     res_ref = []
     res_alt = []
     valid_nuc = ["A", "T", "C", "G", args.blank]
     cols_id = ascii.get_index(args.add_columns)    # columns chars are converted as index, ex: AA -> 27
+
+    ### check input syntax
+    if not _input_ok(args, rows, resp, chr_dict, cols_id):
+        return resp
 
     ### starts computing
     for i,row in enumerate(rows):
@@ -101,13 +110,6 @@ def compute(args, chr_dict):
             continue
         fields = row.split('\t')
         chr, position, id, ref, alts = fields[:5]
-
-        ### check if --add-columns is compatible with number of columns
-        if args.add_columns and max(cols_id) > len(fields):
-            resp["error"] = (f"VCF file has {len(fields)} columns, but you asked for "
-                  f"{max(args.add_columns)}.")
-            resp["is_ok"] = False
-            return resp
 
         alts = alts.split(',')
         for alt in alts:
