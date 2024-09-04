@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
 """
-Similar to seqtailor [PMID:31045209] : reads a VCF file, outputs a genomic sequence
-(default length: 31)
+Similar to seqtailor [PMID:31045209] : reads a VCF file, outputs a genomic
+sequence (default length: 31)
 
-Unlike seqtailor, all sequences will have the same length. Moreover, it is possible to have an
-absence character (by default the dot ` .` ) for indels.
+Unlike seqtailor, all sequences will have the same length. Moreover, it is
+possible to have an absence character (by default the dot ` .` ) for indels.
 
-- When a insertion is larger than `--size` parameter, only first `--size` nucleotides are outputed.
+- When a insertion is larger than `--size` parameter, only first `--size`
+  nucleotides are outputed.
 - Sequence headers are formated as "<chr>_<position>_<ref>_<alt>".
 
-VCF format specifications: https://github.com/samtools/hts-specs/blob/master/VCFv4.4.pdf
+VCF format spec: https://github.com/samtools/hts-specs/blob/master/VCFv4.4.pdf
 """
 
 import sys
@@ -18,6 +19,7 @@ import os
 import argparse
 import ascii
 import pyfaidx
+import shutil
 
 import info
 
@@ -119,7 +121,7 @@ def compute(args, chr_dict):
 
             ### WARNING: event bigger than kmer size
             if len(ref) > args.size :
-                resp["warning"].append(f" REF deletion larger than {args.size} at line {i+1}, truncated in output ({ref}).")
+                resp["warning"].append(f" REF deletion larger than {args.size} at line {i+1}, truncated in output ({len(ref)} pb).")
 
             ### ERROR: REF/ALT base is not valid
             bad_nuc = [ a for a in (alt[0], ref[0]) if a not in valid_nuc]
@@ -209,8 +211,7 @@ def compute(args, chr_dict):
                     res_alt.append(f">{header}_alt{added_cols}")
                     res_alt.append(alt_seq)
             elif len(alt_seq) > args.size:
-                resp["warning"].append(f" ALT length ({len(alt_seq)} bp) larger than sequence "
-                                f"({args.size} bp) at line {i+1}, ignored.")
+                resp["warning"].append(f" ALT insertion larger than {args.size} at line {i+1}, truncated in output ({len(alt)} bp).")
             else:
                 resp["warning"].append(f" Sequence size not correct at line {i+1}, ignored"
                                 f"({len(alt_seq)} != {args.size}).")
@@ -277,7 +278,7 @@ class COL:
 
 
 def usage():
-    doc_sep = '=' * min(80, os.get_terminal_size(2)[0])
+    doc_sep = '=' * min(80, shutil.get_terminal_size()[0])
     parser = argparse.ArgumentParser(description= f'{doc_sep}{__doc__}{doc_sep}',
                                      formatter_class=argparse.RawDescriptionHelpFormatter,)
     parser.add_argument("input",
