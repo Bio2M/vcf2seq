@@ -89,6 +89,7 @@ def compute(args, chr_dict):
         "warning": [],
         "error": None
         }
+    uniq_id = set() # cause id must be uniq
 
     ### convert input as list
     if isinstance(args.input, str):
@@ -118,6 +119,12 @@ def compute(args, chr_dict):
 
             header = f"{chr}:{position}_{ref}_{alt}"
             tsv_cols =  '\t' + '\t'.join([chr, position, ref, alt]) if args.output_format == 'tsv' else ''
+
+            ### preserve unicity
+            if header in uniq_id:
+                continue
+            else:
+                uniq_id.add(header)
 
             ### WARNING: event bigger than kmer size
             if len(ref) > args.size :
