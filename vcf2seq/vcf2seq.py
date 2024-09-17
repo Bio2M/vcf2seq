@@ -120,7 +120,7 @@ def compute(args, chr_dict):
             header = f"{chr}:{position}_{ref}_{alt}"
             tsv_cols =  '\t' + '\t'.join([chr, position, ref, alt]) if args.output_format == 'tsv' else ''
 
-            ### preserve unicity
+            ### Avoid duplicate sequences
             if header in uniq_id:
                 continue
             else:
