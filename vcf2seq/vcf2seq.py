@@ -245,7 +245,7 @@ def output(args, resp):
     ## define output file
     if not args.output:
         name, _ = os.path.splitext(os.path.basename(args.input.name))
-        args.output = f"{name}-vcf2seq.{ext}"
+        args.output = f"{name}-vcf2seq-{args.size}.{ext}"
 
     if resp["is_ok"]:
         ## write results in file
