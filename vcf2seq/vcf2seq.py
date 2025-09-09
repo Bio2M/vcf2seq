@@ -202,7 +202,7 @@ def compute(args, chr_dict):
                                 f"   - REF in the vcf file: {ref!r}\n"
                                 f"   - Found in the genome: '{seq_ref2}'\n"
                                 "   Please check if the given genome is appropriate.")
-            col_sep = ' ' if args.output_format == 'fa' else '\t'
+            col_sep = args.delimiter if args.output_format == 'fa' else '\t'
 
             ### Append results in lists
             if len(ref_seq) == args.size == len(alt_seq):
@@ -317,6 +317,10 @@ def usage():
                         help="Add one or more columns to header (ex: '-a 3 AA' will add columns "
                              "3 and 27). The first column is '1' (or 'A')",
                         nargs= '+',
+                        )
+    parser.add_argument("-d", "--delimiter",
+                        help="with -a/--add-columns and a fasta format output, specifies a delimiter (default: space)",
+                        default= ' ',
                         )
     parser.add_argument("-o", "--output",
                         type=str,
