@@ -191,7 +191,7 @@ def compute(args, chr_dict):
                 seq_alt3 = chr_dict[chr][ps_alt3:pe_alt3]
                 alt_seq = f"{seq_alt1}{alt}{seq_alt3}"
             except:
-                resp["warning"].append(f"Warning: something went wrong at line {num_row}, ignored.")
+                resp["warning"].append(f"Warning: something went wrong at line {i+1}, ignored.")
                 break
 
             ### WARNING: REF bases must be the same as the calculated position
