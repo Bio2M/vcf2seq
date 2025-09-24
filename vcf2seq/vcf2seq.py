@@ -204,6 +204,11 @@ def compute(args, chr_dict):
                                 "   Please check if the given genome is appropriate.")
             col_sep = args.delimiter if args.output_format == 'fa' else '\t'
 
+            ### Special case: insertion largest output kmer
+            if len(alt_seq) > args.size:
+                ins_diff = (len(alt) - args.size) // 2
+                alt_seq = alt_seq[ins_diff:args.size+ins_diff]
+                resp["warning"].append(f" ALT insertion larger than {args.size} at line {i+1}, truncated in output ({len(alt)} bp).")
             ### Append results in lists
             if len(ref_seq) == args.size == len(alt_seq):
                 ### append additional selected columns to the header
@@ -217,8 +222,6 @@ def compute(args, chr_dict):
                     res_ref.append(ref_seq)
                     res_alt.append(f">{header}_alt{added_cols}")
                     res_alt.append(alt_seq)
-            elif len(alt_seq) > args.size:
-                resp["warning"].append(f" ALT insertion larger than {args.size} at line {i+1}, truncated in output ({len(alt)} bp).")
             else:
                 resp["warning"].append(f" Sequence size not correct at line {i+1}, ignored"
                                 f"({len(alt_seq)} != {args.size}).")
