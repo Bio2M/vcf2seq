@@ -128,13 +128,13 @@ def compute(args, chr_dict):
 
             ### WARNING: event bigger than kmer size
             if len(ref) > args.size :
-                resp["warning"].append(f" REF deletion larger than {args.size} at line {i+1}, truncated in output ({len(ref)} pb).")
+                resp["warning"].append(f"line {i+1}: REF deletion larger than {args.size}, truncated in output ({len(ref)} pb).")
 
             ### ERROR: REF/ALT base is not valid
             bad_nuc = [ a for a in (alt[0], ref[0]) if a not in valid_nuc]
             if bad_nuc:
                 bad_nuc = bad_nuc[0]
-                resp["warning"].append(f"The base {bad_nuc!r} is not valid at line {i+1}, ignored.\n"
+                resp["warning"].append(f"line {i+1}: the base {bad_nuc!r} is not valid, ignored.\n"
                         f"    You might add the '-b/--blank {bad_nuc}' option or check your VCF file."
                         )
                 continue
@@ -191,24 +191,24 @@ def compute(args, chr_dict):
                 seq_alt3 = chr_dict[chr][ps_alt3:pe_alt3]
                 alt_seq = f"{seq_alt1}{alt}{seq_alt3}"
             except:
-                resp["warning"].append(f"Warning: something went wrong at line {i+1}, ignored.")
+                resp["warning"].append(f"line {i+1}: something went wrong, ignored.")
                 break
 
             ### WARNING: REF bases must be the same as the calculated position
             seq_ref2 = chr_dict[chr][ps_ref2:ps_ref2+l_ref2]
             if l_ref2 and not ref == seq_ref2:
-                resp["warning"].append(" Mismatch between REF and genome "
-                                f"at line {i+1} (chr{chr}:{ps_ref2+1}).\n"
-                                f"   - REF in the vcf file: {ref!r}\n"
-                                f"   - Found in the genome: '{seq_ref2}'\n"
-                                "   Please check if the given genome is appropriate.")
+                resp["warning"].append(f"line {i+1}: mismatch between REF and genome"
+                                f" (chr{chr}:{ps_ref2+1}).\n"
+                                f"    - REF in the vcf file: {ref!r}\n"
+                                f"    - Found in the genome: '{seq_ref2}'\n"
+                                 "    Please check if the given genome is appropriate.")
             col_sep = args.delimiter if args.output_format == 'fa' else '\t'
 
             ### Special case: insertion largest output kmer
             if len(alt_seq) > args.size:
                 ins_diff = (len(alt) - args.size) // 2
                 alt_seq = alt_seq[ins_diff:args.size+ins_diff]
-                resp["warning"].append(f" ALT insertion larger than {args.size} at line {i+1}, truncated in output ({len(alt)} bp).")
+                resp["warning"].append(f"line {i+1}: ALT insertion larger than {args.size}, truncated in output ({len(alt)} bp).")
             ### Append results in lists
             if len(ref_seq) == args.size == len(alt_seq):
                 ### append additional selected columns to the header
@@ -223,7 +223,7 @@ def compute(args, chr_dict):
                     res_alt.append(f">{header}_alt{added_cols}")
                     res_alt.append(alt_seq)
             else:
-                resp["warning"].append(f" Sequence size not correct at line {i+1}, ignored"
+                resp["warning"].append(f"line {i+1}: sequence size not correct, ignored"
                                 f"({len(alt_seq)} != {args.size}).")
 
 
@@ -268,7 +268,7 @@ def output(args, resp):
         if resp["warning"]:
             print(f"{COL.PURPLE}⚠️  Warnings:")
             for warning in resp["warning"]:
-                print(f"  - {warning}")
+                print(f" - {warning}")
             print(COL.END)
     else:
         print(f"\n☠️  {COL.RED}{resp['error']}\n")
