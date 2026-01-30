@@ -128,7 +128,7 @@ def compute(args, chr_dict):
 
             ### WARNING: event bigger than kmer size
             if len(ref) > args.size :
-                resp["warning"].append(f"line {i+1}: REF deletion larger than {args.size}, truncated in output ({len(ref)} pb).")
+                resp["warning"].append(f"line {i+1}: REF deletion larger than {args.size} ({len(ref)} pb), truncated in output.")
 
             ### ERROR: REF/ALT base is not valid
             bad_nuc = [ a for a in (alt[0], ref[0]) if a not in valid_nuc]
@@ -208,7 +208,7 @@ def compute(args, chr_dict):
             if len(alt_seq) > args.size:
                 ins_diff = (len(alt) - args.size) // 2
                 alt_seq = alt_seq[ins_diff:args.size+ins_diff]
-                resp["warning"].append(f"line {i+1}: ALT insertion larger than {args.size}, truncated in output ({len(alt)} bp).")
+                resp["warning"].append(f"line {i+1}: ALT insertion larger than {args.size} ({len(alt)} bp), truncated in output.")
             ### Append results in lists
             if len(ref_seq) == args.size == len(alt_seq):
                 ### append additional selected columns to the header
