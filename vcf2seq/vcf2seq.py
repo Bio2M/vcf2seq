@@ -135,7 +135,7 @@ def compute(args, chr_dict):
             if bad_nuc:
                 bad_nuc = bad_nuc[0]
                 resp["warning"].append(f"line {i+1}: the base {bad_nuc!r} is not valid, ignored.\n"
-                        f"    You might add the '-b/--blank {bad_nuc}' option or check your VCF file."
+                        f"    You might add a nucleotide absence character with the '-b/--blank {bad_nuc}' option or check your VCF file."
                         )
                 continue
 
