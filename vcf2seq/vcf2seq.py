@@ -35,9 +35,6 @@ def main():
         sys.exit(f"\n{COL.RED}WriteError: directory {os.path.dirname(args.genome)!r} may not be "
                   "writable.\nIf you can't change the rights, you can create a symlink and target "
                   f"it. For example:\n  ln -s {args.genome} $HOME\n{COL.END}")
-    # ~ vcf_ok, vcf_msg = input_ctrl(args, chr_dict)
-    # ~ if not vcf_ok:
-        # ~ sys.exit(f"{COL.RED}{vcf_msg}")
     resp = compute(args, chr_dict)
     output(args, resp)
 
@@ -134,8 +131,9 @@ def compute(args, chr_dict):
             bad_nuc = [ a for a in (alt[0], ref[0]) if a not in valid_nuc]
             if bad_nuc:
                 bad_nuc = bad_nuc[0]
-                resp["warning"].append(f"line {i+1}: the base {bad_nuc!r} is not valid, ignored.\n"
-                        f"    You might add a nucleotide absence character with the '-b/--blank {bad_nuc}' option or check your VCF file."
+                resp["warning"].append(f"line {i+1} ignored: the base {bad_nuc!r} is not valid.\n"
+                        "     The default nucleotide absence character is the dot (.).\n"
+                        f"     You may specify the {bad_nuc!r} character instead."
                         )
                 continue
 
@@ -191,7 +189,7 @@ def compute(args, chr_dict):
                 seq_alt3 = chr_dict[chr][ps_alt3:pe_alt3]
                 alt_seq = f"{seq_alt1}{alt}{seq_alt3}"
             except:
-                resp["warning"].append(f"line {i+1}: something went wrong, ignored.")
+                resp["warning"].append(f"line {i+1} ignored: something went wrong.")
                 break
 
             ### WARNING: REF bases must be the same as the calculated position
@@ -199,9 +197,9 @@ def compute(args, chr_dict):
             if l_ref2 and not ref == seq_ref2:
                 resp["warning"].append(f"line {i+1}: mismatch between REF and genome"
                                 f" (chr{chr}:{ps_ref2+1}).\n"
-                                f"    - REF in the vcf file: {ref!r}\n"
-                                f"    - Found in the genome: '{seq_ref2}'\n"
-                                 "    Please check if the given genome is appropriate.")
+                                f"     - REF in the vcf file: {ref!r}\n"
+                                f"     - Found in the genome: '{seq_ref2}'\n"
+                                 "     Please check if the given genome is appropriate.")
             col_sep = args.delimiter if args.output_format == 'fa' else '\t'
 
             ### Special case: insertion largest output kmer
@@ -223,11 +221,10 @@ def compute(args, chr_dict):
                     res_alt.append(f">{header}_alt{added_cols}")
                     res_alt.append(alt_seq)
             else:
-                resp["warning"].append(f"line {i+1}: sequence size not correct, ignored"
+                resp["warning"].append(f"line {i+1} ignored: sequence size not correct"
                                 f"({len(alt_seq)} != {args.size}).")
 
 
-    # ~ res = list()
     if args.output_format == 'tsv':
         str_cols = '\t' + "col_{}".format('\tcol_'.join(args.add_columns)) if args.add_columns else ''
         resp["result"].append(f"sequence\tid\tchr\tposition\tREF\tALT\ttype{str_cols}")
@@ -313,7 +310,7 @@ def usage():
                         )
     parser.add_argument("-b", "--blank",
                         type=str,
-                        help="Missing nucleotide character, default is dot (.)",
+                        help="Nucleotide absence character, default is dot (.)",
                         default='.',
                         )
     parser.add_argument("-a", "--add-columns",
