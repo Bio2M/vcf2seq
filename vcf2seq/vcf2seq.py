@@ -106,142 +106,147 @@ def compute(args, chr_dict):
 
     ### starts computing
     for i,row in enumerate(rows):
-        if not row or row.startswith('#'):
-            continue
-        fields = row.split('\t')
-        chr, position, id, ref, alts = fields[:5]
-
-        alts = alts.split(',')
-        for alt in alts:
-
-            header = f"{chr}:{position}_{ref}_{alt}"
-            tsv_cols =  '\t' + '\t'.join([chr, position, ref, alt]) if args.output_format == 'tsv' else ''
-
-            ### Avoid duplicate sequences
-            if header in uniq_id:
+        try:
+            if not row or row.startswith('#'):
                 continue
-            else:
-                uniq_id.add(header)
-
-            ### WARNING: event bigger than kmer size
-            if len(ref) > args.size :
-                resp["warning"].append(f"line {i+1}: REF deletion larger than {args.size} ({len(ref)} pb), truncated in output.")
-
-            ### ERROR: REF/ALT base is not valid
-            bad_nuc = [ a for a in (alt[0], ref[0]) if a not in valid_nuc]
-            if bad_nuc:
-                bad_nuc = bad_nuc[0]
-                resp["warning"].append(f"line {i+1} ignored: the base {bad_nuc!r} is not valid.\n"
-                        "     The default nucleotide absence character is the dot (.).\n"
-                        f"     You may specify the {bad_nuc!r} character instead."
-                        )
-                continue
-
-            #####################################################################################
-            #                Some explanations on variable naming                               #
-            #                                                                                   #
-            #  l = length                                                                       #
-            #  ps = position start                                                              #
-            #  pe = position end                                                                #
-            #                                                                                   #
-            #                  ps_ref2: position of the first base of REF                       #
-            #                  |                                                                #
-            #        l_ref1    | l_ref2     l_ref3                                              #
-            #   |--------------|---------|--------------|                                       #
-            #        l_alt1     l_alt2       l_alt3                                             #
-            #   |------------|-------------|------------|                                       #
-            #  ps_alt1                                 pe_alt3                                  #
-            #                                                                                   #
-            #####################################################################################
-
-            ### define some corrections
-            corr_ref = 0
-            corr_alt = 0
-            if not args.size&1:                                 # k is pair
-                if len(ref)&1 and ref != args.blank: corr_ref += 1  # corr_ref + 1 if REF length is unpair
-                if len(alt)&1 and alt != args.blank: corr_alt += 1  # corr_alt + 1 if ALT length is unpair
-            else:                                               # k is unpair
-                if not len(ref)&1: corr_ref += 1                    # corr_ref + 1 if REF length is pair
-                if not len(alt)&1: corr_alt += 1                    # corr_alt + 1 if ALT length is pair
-                if ref == args.blank: corr_ref += 1                 # missing value for REF
-                if alt == args.blank: corr_alt += 1                 # missing value for ALT
-
-            try:
-                ## define REF kmer
-                l_ref2  = 0 if ref == args.blank else len(ref)
-                l_ref1  = (args.size - l_ref2) // 2
-                l_ref3  = l_ref1 + corr_ref
-                ps_ref2 = int(position)-1                               # -1 for pyfaidx
-                ps_ref1 = ps_ref2 - l_ref1
-                pe_ref3 = ps_ref2 + l_ref2 + l_ref3
-                ref_seq = str(chr_dict[chr][ps_ref1:pe_ref3])
-
-                ## define ALT kmer
-                l_alt2 = 0 if alt == args.blank else len(alt)
-                l_alt1 = (args.size - l_alt2) // 2
-                l_alt3 = (args.size - l_alt2) // 2 + corr_alt
-                ps_alt2 = ps_ref2 - (l_alt2 - l_ref2) // 2
-                ps_alt1 = ps_ref2 - l_alt1
-                ps_alt3 = ps_ref2 + l_ref2
-                pe_alt3 = ps_alt3 + l_alt3
-                seq_alt1 = chr_dict[chr][ps_alt1:ps_ref2]
-                alt = alt if alt != args.blank else ""
-                seq_alt3 = chr_dict[chr][ps_alt3:pe_alt3]
-                alt_seq = f"{seq_alt1}{alt}{seq_alt3}"
-            except:
-                resp["warning"].append(f"line {i+1} ignored: something went wrong.")
-                break
-
-            ### WARNING: REF bases must be the same as the calculated position
-            seq_ref2 = chr_dict[chr][ps_ref2:ps_ref2+l_ref2]
-            if l_ref2 and not ref == seq_ref2:
-                resp["warning"].append(f"line {i+1}: mismatch between REF and genome"
-                                f" (chr{chr}:{ps_ref2+1}).\n"
-                                f"     - REF in the vcf file: {ref!r}\n"
-                                f"     - Found in the genome: '{seq_ref2}'\n"
-                                 "     Please check if the given genome is appropriate.")
-            col_sep = args.delimiter if args.output_format == 'fa' else '\t'
-
-            ### Special case: insertion largest output kmer
-            if len(alt_seq) > args.size:
-                ins_diff = (len(alt) - args.size) // 2
-                alt_seq = alt_seq[ins_diff:args.size+ins_diff]
-                resp["warning"].append(f"line {i+1}: ALT insertion larger than {args.size} ({len(alt)} bp), truncated in output.")
-            ### Append results in lists
-            if len(ref_seq) == args.size == len(alt_seq):
-                ### append additional selected columns to the header
-                added_cols = f"{col_sep}{col_sep.join([fields[num-1] for num in cols_id])}" if cols_id else ''
-                ### append to list according of output format
-                if args.output_format == "tsv":
-                    res_ref.append(f"{ref_seq}{col_sep}{header}_ref{tsv_cols}{col_sep}ref{added_cols}")
-                    res_alt.append(f"{alt_seq}{col_sep}{header}_alt{tsv_cols}{col_sep}alt{added_cols}")
+            fields = row.split('\t')
+            chr, position, id, ref, alts = fields[:5]
+    
+            alts = alts.split(',')
+            for alt in alts:
+    
+                header = f"{chr}:{position}_{ref}_{alt}"
+                tsv_cols =  '\t' + '\t'.join([chr, position, ref, alt]) if args.output_format == 'tsv' else ''
+    
+                ### Avoid duplicate sequences
+                if header in uniq_id:
+                    continue
                 else:
-                    res_ref.append(f">{header}_ref{added_cols}")
-                    res_ref.append(ref_seq)
-                    res_alt.append(f">{header}_alt{added_cols}")
-                    res_alt.append(alt_seq)
-            else:
-                resp["warning"].append(f"line {i+1} ignored: sequence size not correct"
-                                f"({len(alt_seq)} != {args.size}).")
+                    uniq_id.add(header)
+    
+                ### WARNING: event bigger than kmer size
+                if len(ref) > args.size :
+                    resp["warning"].append(f"line {i+1}: REF deletion larger than {args.size} ({len(ref)} pb), truncated in output.")
+    
+                ### ERROR: REF/ALT base is not valid
+                bad_nuc = [ a for a in (alt[0], ref[0]) if a not in valid_nuc]
+                if bad_nuc:
+                    bad_nuc = bad_nuc[0]
+                    resp["warning"].append(f"line {i+1} ignored: the base {bad_nuc!r} is not valid.\n"
+                            "     The default nucleotide absence character is the dot (.).\n"
+                            f"     You may specify the {bad_nuc!r} character instead."
+                            )
+                    continue
+    
+                #####################################################################################
+                #                Some explanations on variable naming                               #
+                #                                                                                   #
+                #  l = length                                                                       #
+                #  ps = position start                                                              #
+                #  pe = position end                                                                #
+                #                                                                                   #
+                #                  ps_ref2: position of the first base of REF                       #
+                #                  |                                                                #
+                #        l_ref1    | l_ref2     l_ref3                                              #
+                #   |--------------|---------|--------------|                                       #
+                #        l_alt1     l_alt2       l_alt3                                             #
+                #   |------------|-------------|------------|                                       #
+                #  ps_alt1                                 pe_alt3                                  #
+                #                                                                                   #
+                #####################################################################################
+    
+                ### define some corrections
+                corr_ref = 0
+                corr_alt = 0
+                if not args.size&1:                                 # k is pair
+                    if len(ref)&1 and ref != args.blank: corr_ref += 1  # corr_ref + 1 if REF length is unpair
+                    if len(alt)&1 and alt != args.blank: corr_alt += 1  # corr_alt + 1 if ALT length is unpair
+                else:                                               # k is unpair
+                    if not len(ref)&1: corr_ref += 1                    # corr_ref + 1 if REF length is pair
+                    if not len(alt)&1: corr_alt += 1                    # corr_alt + 1 if ALT length is pair
+                    if ref == args.blank: corr_ref += 1                 # missing value for REF
+                    if alt == args.blank: corr_alt += 1                 # missing value for ALT
+    
+                try:
+                    ## define REF kmer
+                    l_ref2  = 0 if ref == args.blank else len(ref)
+                    l_ref1  = (args.size - l_ref2) // 2
+                    l_ref3  = l_ref1 + corr_ref
+                    ps_ref2 = int(position)-1                               # -1 for pyfaidx
+                    ps_ref1 = ps_ref2 - l_ref1
+                    pe_ref3 = ps_ref2 + l_ref2 + l_ref3
+                    ref_seq = str(chr_dict[chr][ps_ref1:pe_ref3])
+    
+                    ## define ALT kmer
+                    l_alt2 = 0 if alt == args.blank else len(alt)
+                    l_alt1 = (args.size - l_alt2) // 2
+                    l_alt3 = (args.size - l_alt2) // 2 + corr_alt
+                    ps_alt2 = ps_ref2 - (l_alt2 - l_ref2) // 2
+                    ps_alt1 = ps_ref2 - l_alt1
+                    ps_alt3 = ps_ref2 + l_ref2
+                    pe_alt3 = ps_alt3 + l_alt3
+                    seq_alt1 = chr_dict[chr][ps_alt1:ps_ref2]
+                    alt = alt if alt != args.blank else ""
+                    seq_alt3 = chr_dict[chr][ps_alt3:pe_alt3]
+                    alt_seq = f"{seq_alt1}{alt}{seq_alt3}"
+                except:
+                    resp["warning"].append(f"line {i+1} ignored: something went wrong.")
+                    break
+    
+                ### WARNING: REF bases must be the same as the calculated position
+                seq_ref2 = chr_dict[chr][ps_ref2:ps_ref2+l_ref2]
+                if l_ref2 and not ref == seq_ref2:
+                    resp["warning"].append(f"line {i+1}: mismatch between REF and genome"
+                                    f" (chr{chr}:{ps_ref2+1}).\n"
+                                    f"     - REF in the vcf file: {ref!r}\n"
+                                    f"     - Found in the genome: '{seq_ref2}'\n"
+                                     "     Please check if the given genome is appropriate.")
+                col_sep = args.delimiter if args.output_format == 'fa' else '\t'
+    
+                ### Special case: insertion largest output kmer
+                if len(alt_seq) > args.size:
+                    ins_diff = (len(alt) - args.size) // 2
+                    alt_seq = alt_seq[ins_diff:args.size+ins_diff]
+                    resp["warning"].append(f"line {i+1}: ALT insertion larger than {args.size} ({len(alt)} bp), truncated in output.")
+                ### Append results in lists
+                if len(ref_seq) == args.size == len(alt_seq):
+                    ### append additional selected columns to the header
+                    added_cols = f"{col_sep}{col_sep.join([fields[num-1] for num in cols_id])}" if cols_id else ''
+                    ### append to list according of output format
+                    if args.output_format == "tsv":
+                        res_ref.append(f"{ref_seq}{col_sep}{header}_ref{tsv_cols}{col_sep}ref{added_cols}")
+                        res_alt.append(f"{alt_seq}{col_sep}{header}_alt{tsv_cols}{col_sep}alt{added_cols}")
+                    else:
+                        res_ref.append(f">{header}_ref{added_cols}")
+                        res_ref.append(ref_seq)
+                        res_alt.append(f">{header}_alt{added_cols}")
+                        res_alt.append(alt_seq)
+                else:
+                    resp["warning"].append(f"line {i+1} ignored: sequence size not correct"
+                                    f"({len(alt_seq)} != {args.size}).")
+    
+        except Exception as err:
+            resp["warning"].append(f"line {i+1}: {err}")
 
-
-    if args.output_format == 'tsv':
-        str_cols = '\t' + "col_{}".format('\tcol_'.join(args.add_columns)) if args.add_columns else ''
-        resp["result"].append(f"sequence\tid\tchr\tposition\tREF\tALT\ttype{str_cols}")
-
-    if args.type == 'alt':
-        resp["result"] += res_alt
-    elif args.type == 'ref':
-        resp["result"] += res_ref
-    else:
-        if args.output_format == 'fa':
-            for i in range(0, len(res_alt), 2):
-                resp["result"] += [res_ref[i], res_ref[i+1]]
-                resp["result"] += [res_alt[i], res_alt[i+1]]
+        ### format results
+        if args.output_format == 'tsv':
+            str_cols = '\t' + "col_{}".format('\tcol_'.join(args.add_columns)) if args.add_columns else ''
+            resp["result"].append(f"sequence\tid\tchr\tposition\tREF\tALT\ttype{str_cols}")
+    
+        if args.type == 'alt':
+            resp["result"] += res_alt
+        elif args.type == 'ref':
+            resp["result"] += res_ref
         else:
-            for i,_ in enumerate(res_alt):
-                resp["result"].append(res_ref[i])
-                resp["result"].append(res_alt[i])
+            if args.output_format == 'fa':
+                for i in range(0, len(res_alt), 2):
+                    resp["result"] += [res_ref[i], res_ref[i+1]]
+                    resp["result"] += [res_alt[i], res_alt[i+1]]
+            else:
+                for i,_ in enumerate(res_alt):
+                    resp["result"].append(res_ref[i])
+                    resp["result"].append(res_alt[i])
+
     return resp
 
 
