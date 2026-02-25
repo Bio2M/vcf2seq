@@ -228,24 +228,24 @@ def compute(args, chr_dict):
         except Exception as err:
             resp["warning"].append(f"line {i+1}: {err}")
 
-        ### format results
-        if args.output_format == 'tsv':
-            str_cols = '\t' + "col_{}".format('\tcol_'.join(args.add_columns)) if args.add_columns else ''
-            resp["result"].append(f"sequence\tid\tchr\tposition\tREF\tALT\ttype{str_cols}")
-    
-        if args.type == 'alt':
-            resp["result"] += res_alt
-        elif args.type == 'ref':
-            resp["result"] += res_ref
+    ### format results
+    if args.output_format == 'tsv':
+        str_cols = '\t' + "col_{}".format('\tcol_'.join(args.add_columns)) if args.add_columns else ''
+        resp["result"].append(f"sequence\tid\tchr\tposition\tREF\tALT\ttype{str_cols}")
+
+    if args.type == 'alt':
+        resp["result"] += res_alt
+    elif args.type == 'ref':
+        resp["result"] += res_ref
+    else:
+        if args.output_format == 'fa':
+            for i in range(0, len(res_alt), 2):
+                resp["result"] += [res_ref[i], res_ref[i+1]]
+                resp["result"] += [res_alt[i], res_alt[i+1]]
         else:
-            if args.output_format == 'fa':
-                for i in range(0, len(res_alt), 2):
-                    resp["result"] += [res_ref[i], res_ref[i+1]]
-                    resp["result"] += [res_alt[i], res_alt[i+1]]
-            else:
-                for i,_ in enumerate(res_alt):
-                    resp["result"].append(res_ref[i])
-                    resp["result"].append(res_alt[i])
+            for i,_ in enumerate(res_alt):
+                resp["result"].append(res_ref[i])
+                resp["result"].append(res_alt[i])
 
     return resp
 
