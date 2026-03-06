@@ -31,18 +31,19 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -g genome, --genome genome
-                        genome as fasta file (mandatory)
-  -s SIZE, --size SIZE  size of the output sequence (default: 31)
-  -t {alt,ref,both}, --type {alt,ref,both}
+  -g, --genome genome   genome as fasta file (mandatory)
+  -s, --size SIZE       size of the output sequence (default: 31)
+  -t, --type {alt,ref,both}
                         alt, ref, or both output? (default: alt)
-  -b BLANK, --blank BLANK
-                        Missing nucleotide character, default is dot (.)
-  -a ADD_COLUMNS [ADD_COLUMNS ...], --add-columns ADD_COLUMNS [ADD_COLUMNS ...]
-                        Add one or more columns to header (ex: '-a 3 AA' will add columns 3 and 27). The first column is '1' (or 'A')
-  -o OUTPUT, --output OUTPUT
-                        Output file (default: <input_file>-vcf2seq.fa/tsv)
-  -f {fa,tsv}, --output-format {fa,tsv}
+  -b, --blank BLANK     Nucleotide absence character, default is dot (.)
+  -a, --add-columns ADD_COLUMNS [ADD_COLUMNS ...]
+                        Add one or more columns to header (ex: '-a 3 AA' will 
+                        add columns 3 and 27). The first column is '1' (or 'A')
+  -d, --delimiter DELIMITER
+                        with -a/--add-columns and a fasta format output, 
+                        specifies a delimiter (default: '|')
+  -o, --output OUTPUT   Output file (default: <input_file>-vcf2seq.fa/tsv)
+  -f, --output-format {fa,tsv}
                         Output file format (default: fa)
   -v, --version         show program's version number and exit
 ```

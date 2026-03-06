@@ -324,8 +324,8 @@ def usage():
                         nargs= '+',
                         )
     parser.add_argument("-d", "--delimiter",
-                        help="with -a/--add-columns and a fasta format output, specifies a delimiter (default: space)",
-                        default= ' ',
+                        help="with -a/--add-columns and a fasta format output, specifies a delimiter (default: '|')",
+                        default= '|',
                         )
     parser.add_argument("-o", "--output",
                         type=str,
